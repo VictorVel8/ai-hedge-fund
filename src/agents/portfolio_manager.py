@@ -70,6 +70,9 @@ def portfolio_management_agent(state: AgentState):
             "valuation_signal": analyst_signals.get("valuation_agent", {}).get(
                 "signal", ""
             ),
+            "analysts_rating_signal": analyst_signals.get("analyst_ratings_agent",{}).get(
+                "signal", ""
+            ),
             "max_position_size": analyst_signals.get("risk_management_agent", {}).get(
                 "max_position_size", 0
             ),
