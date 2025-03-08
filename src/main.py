@@ -1,3 +1,4 @@
+import threading
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END, StateGraph
@@ -5,11 +6,12 @@ from colorama import Fore, Back, Style, init
 import questionary
 
 from agents.analysts import analyst_ratings_agent
+from agents.sentiment import sentiment_agent
 from agents.fundamentals import fundamentals_agent
 from agents.portfolio_manager import portfolio_management_agent
 from agents.technicals import technical_analyst_agent
 from agents.risk_manager import risk_management_agent
-from agents.sentiment import sentiment_agent
+from agents.insider_sentiment import insider_sentiment_agent
 from graph.state import AgentState
 from agents.valuation import valuation_agent
 from utils.display import print_trading_output
@@ -19,6 +21,9 @@ import argparse
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from tabulate import tabulate
+from scrapy.crawler import CrawlerProcess
+from analyst_spider.analyst_spider.spiders.analyst_spider import AnalystSpider
+from analyst_spider.analyst_spider.pipelines import AnalystSpiderPipeline
 
 # Load environment variables from .env file
 load_dotenv()
@@ -86,15 +91,16 @@ def create_workflow(selected_analysts=None):
 
     # Default to all analysts if none selected
     if selected_analysts is None:
-        selected_analysts = ["technical_analyst", "fundamentals_analyst", "sentiment_analyst", "valuation_analyst", "analysts_rating_analyst"]
+        selected_analysts = ["technical_analyst", "fundamentals_analyst", "insider_sentiment_analyst", "valuation_analyst", "analysts_rating_analyst"]
 
     # Dictionary of all available analysts
     analyst_nodes = {
         "technical_analyst": ("technical_analyst_agent", technical_analyst_agent),
         "fundamentals_analyst": ("fundamentals_agent", fundamentals_agent),
-        "sentiment_analyst": ("sentiment_agent", sentiment_agent),
+        "insider_sentiment_analyst": ("insider_sentiment_agent", insider_sentiment_agent),
         "valuation_analyst": ("valuation_agent", valuation_agent),
-        "analysts_rating_analyst": ("analyst_ratings_agent", analyst_ratings_agent)
+        "analysts_rating_analyst": ("analyst_ratings_agent", analyst_ratings_agent),
+        "sentiment_analyst": ("sentiment_agent", sentiment_agent)
     }
 
     # Add selected analyst nodes
@@ -121,8 +127,8 @@ def create_workflow(selected_analysts=None):
 # # Initialize app as None - it will be set in __main__
 # app = None
 
-
 if __name__ == "__main__":
+    print(threading.current_thread().name)
     parser = argparse.ArgumentParser(description="Run the hedge fund trading system")
     parser.add_argument("--ticker", type=str, required=True, help="Stock ticker symbol")
     parser.add_argument(
@@ -193,6 +199,20 @@ if __name__ == "__main__":
         "cash": 100000.0,  # $100,000 initial cash
         "stock": 0,  # No initial stock position
     }
+
+    process = CrawlerProcess(settings={
+        # Optional: override or extend Scrapy settings here
+        "LOG_LEVEL": "ERROR",
+         "ITEM_PIPELINES": {
+            "analyst_spider.analyst_spider.pipelines.AnalystSpiderPipeline": 0
+        }
+    })
+
+    if 'analysts_rating_analyst' in choices:
+        print('Crawling')
+        # Crawl in the main thread, to not get error
+        process.crawl(AnalystSpider, ticker=args.ticker)
+        process.start()
 
     # Run the hedge fund
     result = run_hedge_fund(

@@ -5,6 +5,8 @@ import json
 from langchain_core.messages import HumanMessage
 from graph.state import AgentState, show_agent_reasoning
 from tools.api import get_prices
+from colorama import Fore
+
 
 def analyst_ratings_agent(state: AgentState):
     """
@@ -26,23 +28,7 @@ def analyst_ratings_agent(state: AgentState):
     )
 
     current_price = prices[-1]["close"]
-    
-    process = CrawlerProcess(settings={
-        # Optional: override or extend Scrapy settings here
-        "LOG_LEVEL": "ERROR",
-         "ITEM_PIPELINES": {
-            "analyst_spider.analyst_spider.pipelines.AnalystSpiderPipeline": 0
-        }
-    })
 
-    # Crawl
-    process.crawl(AnalystSpider, ticker=ticker)
-    process.start()
-
-    message_content = {
-        "analysts_average_price": AnalystSpiderPipeline.average_price,
-        "reasoning": f'We looked over the last 10 analysts target prices on the given stock, and the average of those 10 target prices is {analysts_price} and the last closing price is {current_price}',
-    }
 
     analysts_price = AnalystSpiderPipeline.average_price
 
@@ -51,6 +37,11 @@ def analyst_ratings_agent(state: AgentState):
         signal = "bullish"
     elif analysts_price<0.95*current_price:
         signal="bearish"
+
+    message_content = {
+        "analysts_average_price": AnalystSpiderPipeline.average_price,
+        "reasoning": f'We looked over the last 10 analysts target prices on the given stock, and the average of those 10 target prices is {analysts_price} and the last closing price is {current_price}',
+    }
 
     if state["metadata"]["show_reasoning"]:
         show_agent_reasoning(message_content, "Fundamental Analysis Agent")
@@ -66,6 +57,8 @@ def analyst_ratings_agent(state: AgentState):
         content=json.dumps(message_content),
         name="analyst_ratings_agent",
     )
+
+    #print(Fore.GREEN+f'ANALYSTS RATINGS TEAM: We looked over the last 10 analysts target prices on the given stock, and the average of those 10 target prices is {analysts_price} and the last closing price is {current_price}')
     return {
         "messages": [message],
         "data": data,

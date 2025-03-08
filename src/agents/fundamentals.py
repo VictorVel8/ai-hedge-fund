@@ -5,6 +5,7 @@ from graph.state import AgentState, show_agent_reasoning
 import json
 
 from tools.api import get_financial_metrics
+from colorama import Fore
 
 
 ##### Fundamental Agent #####
@@ -205,6 +206,8 @@ def fundamentals_agent(state: AgentState):
         "confidence": confidence,
         "reasoning": reasoning,
     }
+
+    #print(Fore.BLUE + "FUNDAMENTALS ANALYSIS TEAM: "+ "Profitability: "+reasoning["profitability_signal"]["details"] +" Growth: "+ reasoning["growth_signal"]["details"] +" Financial health: "+ reasoning["financial_health_signal"]["details"] +" Price-To-X Ratio: "+ reasoning["price_ratios_signal"]["details"])
 
     return {
         "messages": [message],

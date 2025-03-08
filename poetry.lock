@@ -1558,6 +1558,25 @@ files = [
 langchain-core = ">=0.3.29,<0.4.0"
 
 [[package]]
+name = "langchain-xai"
+version = "0.2.0"
+description = "An integration package connecting xAI and LangChain"
+optional = false
+python-versions = "<4.0,>=3.9"
+groups = ["main"]
+markers = "python_version <= \"3.11\" or python_version >= \"3.12\""
+files = [
+    {file = "langchain_xai-0.2.0-py3-none-any.whl", hash = "sha256:541c2fe7f83da82ccd86930fd27c0afc56517243996cbe9fa81ea96321b8c0c5"},
+    {file = "langchain_xai-0.2.0.tar.gz", hash = "sha256:aaf25f7e587bf6a043303e88ab4e9a6dd9319cf2a4a8c4d06c4546f0210063f8"},
+]
+
+[package.dependencies]
+aiohttp = ">=3.9.1,<4"
+langchain-core = ">=0.3.29,<0.4.0"
+langchain-openai = ">=0.3,<0.4"
+requests = ">=2,<3"
+
+[[package]]
 name = "langgraph"
 version = "0.2.56"
 description = "Building stateful, multi-actor applications with LLMs"
@@ -3858,4 +3877,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "230b3fbfd8ac0faefebcd9d56dca0e58042aefed601986ba205931a95467506b"
+content-hash = "d80cd2f007eae96484fa245791c1cec694ba65f09af58afa0bb266bcdd0e979f"
