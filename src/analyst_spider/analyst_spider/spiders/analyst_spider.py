@@ -16,9 +16,8 @@ class AnalystSpider(scrapy.Spider):
         self.symbol = ticker
     
     def start_requests(self):
-        symbol = "SNOW"
-        url = f'https://www.marketbeat.com/stocks/NASDAQ/{symbol}/forecast/'
-        yield scrapy.Request(url=url, callback=self.parse, meta={"symbol":symbol, "dont_redirect":True, 'handle_httpstatus_list': [301]})
+        url = f'https://www.marketbeat.com/stocks/NASDAQ/{self.symbol}/forecast/'
+        yield scrapy.Request(url=url, callback=self.parse, meta={"symbol":self.symbol, "dont_redirect":True, 'handle_httpstatus_list': [301]})
 
 
     def parse(self, response):
@@ -29,40 +28,33 @@ class AnalystSpider(scrapy.Spider):
         # si pot include anumite analize recente
         analysts_review_rows = response.xpath('//table[@id="history-table"]/tbody/tr')
         i=0
-        IMPORTANT_THRESHOLD = 10
-        IMPORTANT_FACTOR = 2
         target_prices_sum = 0
         target_prices_cnt = 0
+
         for review_row in analysts_review_rows:
             cells = review_row.xpath('./td/text()').getall()
-            if len(cells) != 6:
+            if len(cells) < 5:
                 continue
-            target_price_str = ""
-            if len(cells[4].split("➝")) == 2:
-                target_price_str = cells[4].split("➝")[1].strip()
-            else:
-                target_price_str = cells[4]
-            target_price = float(target_price_str.replace("$", ""))
-
-            if i<IMPORTANT_THRESHOLD:
-                target_prices_sum += IMPORTANT_FACTOR * target_price
-                target_prices_cnt+=IMPORTANT_FACTOR
-            else:
-                target_prices_sum += target_price
-                target_prices_sum+=1
-
-            i+=1
-            if i == 2*IMPORTANT_THRESHOLD:
+            if (i>=min(len(analysts_review_rows),10)):
                 break
+            target_price_str = ""
+            cells_index=0
+            for j in range(len(cells)):
+                if (cells[j][0]=='$'):
+                    cells_index=j
+                    break
+            if cells_index == 0:
+                continue
+            if len(cells[cells_index].split("➝")) == 2:
+                target_price_str = cells[cells_index].split("➝")[1].strip()
+            else:
+                target_price_str = cells[cells_index]
+            target_price = float(target_price_str.replace("$", ""))
+            target_prices_sum += target_price
+            target_prices_cnt+=1
+            i+=1
+
         if target_prices_cnt>0:
             yield {"price":target_prices_sum/target_prices_cnt}
         else:
             yield {"price":0}
-
-
-    def closed(self, response):
-        # if "NASDAQ" in response.url:
-        with open("NASDAQ_analysts_review_avg.json", 'w') as json_file:
-            json.dump(self.nasdaq_target_prices_dict, json_file, indent=4, default=vars)
-        with open("NYSE_analysts_review_avg.json", 'w') as json_file:
-                json.dump(self.nyse_target_prices_dict, json_file, indent=4, default=vars)

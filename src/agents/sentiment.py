@@ -6,7 +6,7 @@ from typing import Literal
 import json
 
 class SentimentAgentOutput(BaseModel):
-    sentiment: Literal["bullish", "bearish", "neutral"]
+    signal: Literal["bullish", "bearish", "neutral"]
     confidence: float = Field(description="Confidence in the decision, between 0.0 and 100.0")
     reasoning: str = Field(description="In-depth reasoning for the decision")
 
@@ -20,17 +20,20 @@ def sentiment_agent(state: AgentState):
     
     structured_llm = llm.with_structured_output(SentimentAgentOutput, method="function_calling")
     structured_llm_output = structured_llm.invoke(messages)
-   # state["data"]["analyst_signals"]["analyst_ratings_agent"] = structured_llm_output
+    state["data"]["analyst_signals"]["sentiment_agent"] = json.loads(json.dumps(structured_llm_output.__dict__))
 
     # # Create the fundamental analysis message
-    # message = HumanMessage(
-    #     content=json.dumps(structured_llm_output),
-    #     name="analyst_ratings_agent",
-    # )
+    message = HumanMessage(
+        content=json.dumps(structured_llm_output.__dict__),
+        name="sentiment_agent",
+    )
 
-    print("DADA: ")
-    print(structured_llm_output)     
-    # return {
-    #     "messages": [message],
-    #     "data": data,
-    # }
+
+    if state["metadata"]["show_reasoning"]:
+        show_agent_reasoning(json.loads(json.dumps(structured_llm_output.__dict__)), "Sentiment Agent")
+    #print(state["data"]["analyst_signals"]["sentiment_agent"])
+  
+    return {
+        "messages": [message],
+        "data": data,
+    }

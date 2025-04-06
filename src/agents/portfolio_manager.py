@@ -10,7 +10,6 @@ from typing import Literal
 
 class PortfolioManagerOutput(BaseModel):
     action: Literal["buy", "sell", "hold"]
-    quantity: int = Field(description="Number of shares to trade")
     confidence: float = Field(description="Confidence in the decision, between 0.0 and 100.0")
     reasoning: str = Field(description="Reasoning for the decision")
 
@@ -30,18 +29,23 @@ def portfolio_management_agent(state: AgentState):
                 Fundamental Analysis: it gives signals based on the funamental analysis of the given stock,
                 Insider Sentiment Analyst: it look at insider trades
                 Valuation Analyst: it checks if the valuation of the given stock is fair, by methods such as Discounted Cash Flow, Book-to-value etc
-                Analysts Ratings Analyst: it looks at the last 10 analysts target price and compares to the actual price        
+                Analysts Ratings Analyst: it looks at the last 10 analysts target price and compares to the actual price.
+                Sentiment Analyst: it looks over retail investors sentiment and news sentiment about the given company
+                If all analysts give you values, I want you to weight as following: Fundamental 25%, Valuation 20%, Analysts 20%, Sentiment 15% ,Tehnical 10%, Insider sentiment 10%.
+                Analyze the reasoning of each analysis, and based on their signals and reasoning, give a final trading decision, but also explain the reasoning behind your decision.        
+                It's not mandatory for all the analysts to give you values, so you only have to rely on the given analysts responses.
                 """,
             ),
             (
                 "human",
                 """Based on the team's analysis below, make your trading decision.
 
-                Technical Analysis Trading Signal: {technical_signal}
-                Fundamental Analysis Trading Signal: {fundamentals_signal}
-                Insider Sentiment Analysis Trading Signal: {insider_sentiment_signal}
-                Valuation Analysis Trading Signal: {valuation_signal}
-                Analysts Price Target Signal: {analysts_rating_signal}
+                Technical Analysis: {technical_signal}
+                Fundamental Analysis: {fundamentals_signal}
+                Insider Sentiment Analysis: {insider_sentiment_signal}
+                Valuation Analysis: {valuation_signal}
+                Analysts Price: {analysts_rating_signal}
+                Sentiment Analysis: {sentiment_signal}
                 """,
             ),
         ]
@@ -54,30 +58,18 @@ def portfolio_management_agent(state: AgentState):
     # Generate the prompt
     prompt = template.invoke(
         {
-            "technical_signal": analyst_signals.get("technical_analyst_agent", {}).get(
-                "signal", ""
-            ),
-            "fundamentals_signal": analyst_signals.get("fundamentals_agent", {}).get(
-                "signal", ""
-            ),
-            "insider_sentiment_signal": analyst_signals.get("insider_sentiment_agent", {}).get(
-                "signal", ""
-            ),
-            "valuation_signal": analyst_signals.get("valuation_agent", {}).get(
-                "signal", ""
-            ),
-            "analysts_rating_signal": analyst_signals.get("analyst_ratings_agent",{}).get(
-                "signal", ""
-            ),
-            "sentiment_signal": analyst_signals.get("sentiment_agent",{}).get(
-                "signal", ""
-            )
+            "technical_signal": json.dumps(analyst_signals.get("technical_analyst_agent", {})),
+            "fundamentals_signal": json.dumps(analyst_signals.get("fundamentals_agent", {})),
+            "insider_sentiment_signal": json.dumps(analyst_signals.get("insider_sentiment_agent", {})),
+            "valuation_signal": json.dumps(analyst_signals.get("valuation_agent", {})),
+            "analysts_rating_signal": json.dumps(analyst_signals.get("analyst_ratings_agent",{})),
+            "sentiment_signal": json.dumps(analyst_signals.get("sentiment_agent",{}))
         }
     )
     # Create the LLM
-    llm = ChatOpenAI(model="gpt-4").with_structured_output(
+    llm = ChatOpenAI(model="o1").with_structured_output(
         PortfolioManagerOutput,
-        method="function_calling",
+        #method="function_calling",
     )
 
     try:
@@ -89,7 +81,6 @@ def portfolio_management_agent(state: AgentState):
 
     message_content = {
         "action": result.action.lower(),
-        "quantity": int(result.quantity),
         "confidence": float(result.confidence),
         "reasoning": result.reasoning,
     }

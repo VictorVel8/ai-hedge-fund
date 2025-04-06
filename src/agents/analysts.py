@@ -44,7 +44,7 @@ def analyst_ratings_agent(state: AgentState):
     }
 
     if state["metadata"]["show_reasoning"]:
-        show_agent_reasoning(message_content, "Fundamental Analysis Agent")
+        show_agent_reasoning(message_content, "Analysts ratings")
 
     state["data"]["analyst_signals"]["analyst_ratings_agent"] = {
         "signal": signal,

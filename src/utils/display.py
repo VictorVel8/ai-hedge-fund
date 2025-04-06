@@ -64,7 +64,6 @@ def print_trading_output(result: dict) -> None:
 
     decision_data = [
         ["Action", f"{action_color}{action}{Style.RESET_ALL}"],
-        ["Quantity", f"{action_color}{decision.get('quantity')}{Style.RESET_ALL}"],
         [
             "Confidence",
             f"{Fore.YELLOW}{decision.get('confidence'):.1f}%{Style.RESET_ALL}",
@@ -92,7 +91,6 @@ def print_backtest_results(table_rows: List[List], clear_screen: bool = True) ->
         "Date",
         "Ticker",
         "Action",
-        "Quantity",
         "Price",
         "Cash",
         "Stock",

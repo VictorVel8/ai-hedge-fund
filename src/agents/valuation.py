@@ -55,6 +55,8 @@ def valuation_agent(state: AgentState):
         margin_of_safety=0.25,
     )
 
+    print(current_financial_line_item)
+
     # DCF Valuation
     dcf_value = calculate_intrinsic_value(
         free_cash_flow=current_financial_line_item.get("free_cash_flow"),
@@ -72,9 +74,9 @@ def valuation_agent(state: AgentState):
     owner_earnings_gap = (owner_earnings_value - market_cap) / market_cap
     valuation_gap = (dcf_gap + owner_earnings_gap) / 2
 
-    if valuation_gap > 0.15:  # More than 15% undervalued
+    if valuation_gap > 0.10:  # More than 10% undervalued
         signal = "bullish"
-    elif valuation_gap < -0.15:  # More than 15% overvalued
+    elif valuation_gap < -0.10:  # More than 10% overvalued
         signal = "bearish"
     else:
         signal = "neutral"
@@ -83,7 +85,7 @@ def valuation_agent(state: AgentState):
     reasoning = {}
     reasoning["dcf_analysis"] = {
         "signal": (
-            "bullish" if dcf_gap > 0.15 else "bearish" if dcf_gap < -0.15 else "neutral"
+            "bullish" if dcf_gap > 0.10 else "bearish" if dcf_gap < -0.10 else "neutral"
         ),
         "details": f"Intrinsic Value: ${dcf_value:,.2f}, Market Cap: ${market_cap:,.2f}, Gap: {dcf_gap:.1%}",
     }

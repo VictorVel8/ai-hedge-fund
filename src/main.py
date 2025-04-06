@@ -91,7 +91,7 @@ def create_workflow(selected_analysts=None):
 
     # Default to all analysts if none selected
     if selected_analysts is None:
-        selected_analysts = ["technical_analyst", "fundamentals_analyst", "insider_sentiment_analyst", "valuation_analyst", "analysts_rating_analyst"]
+        selected_analysts = ["technical_analyst", "fundamentals_analyst", "insider_sentiment_analyst", "valuation_analyst", "analysts_rating_analyst", "sentiment_analyst"]
 
     # Dictionary of all available analysts
     analyst_nodes = {
@@ -110,15 +110,16 @@ def create_workflow(selected_analysts=None):
         workflow.add_edge("start_node", node_name)
 
     # Always add risk and portfolio management
-    workflow.add_node("risk_management_agent", risk_management_agent)
+    #TODO: Check if risk agent is needed
+    #workflow.add_node("risk_management_agent", risk_management_agent)
     workflow.add_node("portfolio_management_agent", portfolio_management_agent)
 
     # Connect selected analysts to risk management
     for analyst_key in selected_analysts:
         node_name = analyst_nodes[analyst_key][0]
-        workflow.add_edge(node_name, "risk_management_agent")
+        workflow.add_edge(node_name, "portfolio_management_agent")
 
-    workflow.add_edge("risk_management_agent", "portfolio_management_agent")
+    #workflow.add_edge("risk_management_agent", "portfolio_management_agent")
     workflow.add_edge("portfolio_management_agent", END)
 
     workflow.set_entry_point("start_node")
@@ -128,7 +129,6 @@ def create_workflow(selected_analysts=None):
 # app = None
 
 if __name__ == "__main__":
-    print(threading.current_thread().name)
     parser = argparse.ArgumentParser(description="Run the hedge fund trading system")
     parser.add_argument("--ticker", type=str, required=True, help="Stock ticker symbol")
     parser.add_argument(
