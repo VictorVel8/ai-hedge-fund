@@ -75,9 +75,9 @@ def fundamentals_agent(state: AgentState):
     book_value_growth = metrics.get("book_value_growth")
 
     thresholds = [
-        (revenue_growth, 0.10),  # 10% revenue growth
-        (earnings_growth, 0.10),  # 10% earnings growth
-        (book_value_growth, 0.10),  # 10% book value growth
+        (revenue_growth, 0.12),  # 12% revenue growth
+        (earnings_growth, 0.09),  # 9% earnings growth
+        (book_value_growth, 0.10),  # 9% book value growth
     ]
     growth_score = sum(
         metric is not None and metric > threshold for metric, threshold in thresholds

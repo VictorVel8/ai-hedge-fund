@@ -9,6 +9,8 @@ import pandas as pd
 import numpy as np
 
 from tools.api import get_prices, prices_to_df
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 
 ##### Technical Analyst #####
@@ -22,8 +24,9 @@ def technical_analyst_agent(state: AgentState):
     5. Statistical Arbitrage Signals
     """
     data = state["data"]
-    start_date = data["start_date"]
     end_date = data["end_date"]
+    end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+    start_date = (end_date_obj - relativedelta(months=10)).strftime("%Y-%m-%d")
 
     # Get the historical price data
     prices = get_prices(
@@ -50,13 +53,17 @@ def technical_analyst_agent(state: AgentState):
     # 5. Statistical Arbitrage Signals
     stat_arb_signals = calculate_stat_arb_signals(prices_df)
 
+    #6. Ichimoku Cloud
+    ichimoku_signals = calculate_ichimoku(prices_df)
+
     # Combine all signals using a weighted ensemble approach
     strategy_weights = {
-        "trend": 0.25,
-        "mean_reversion": 0.20,
-        "momentum": 0.25,
-        "volatility": 0.15,
-        "stat_arb": 0.15,
+        "trend": 0.30,
+        "mean_reversion": 0.10,
+        "momentum": 0.30,
+        "volatility": 0.10,
+        "stat_arb": 0.10,
+        "ichimoku": 0.10
     }
 
     combined_signal = weighted_signal_combination(
@@ -66,6 +73,7 @@ def technical_analyst_agent(state: AgentState):
             "momentum": momentum_signals,
             "volatility": volatility_signals,
             "stat_arb": stat_arb_signals,
+            "ichimoku": ichimoku_signals
         },
         strategy_weights,
     )
@@ -100,6 +108,11 @@ def technical_analyst_agent(state: AgentState):
                 "confidence": round(stat_arb_signals["confidence"] * 100),
                 "metrics": normalize_pandas(stat_arb_signals["metrics"]),
             },
+            "ichimoku cloud": {
+                "signal": ichimoku_signals["signal"],
+                "confidence": round(ichimoku_signals["confidence"] * 100),
+                "metrics": normalize_pandas(ichimoku_signals["metrics"]),
+            }
         },
     }
 
@@ -122,6 +135,52 @@ def technical_analyst_agent(state: AgentState):
     return {
         "messages": state["messages"] + [message],
         "data": data,
+    }
+
+def calculate_ichimoku(prices_df):
+    # Tenkan-sen (Conversion Line): (9-period high + 9-period low)/2
+    high_9 = prices_df["high"].rolling(window=9).max()
+    low_9 = prices_df["low"].rolling(window=9).min()
+    tenkan_sen = (high_9 + low_9) / 2
+    
+    # Kijun-sen (Base Line): (26-period high + 26-period low)/2
+    high_26 = prices_df["high"].rolling(window=26).max()
+    low_26 = prices_df["low"].rolling(window=26).min()
+    kijun_sen = (high_26 + low_26) / 2
+    
+    # Senkou Span A (Leading Span A): (Tenkan-sen + Kijun-sen)/2 (26 periods ahead)
+    senkou_span_a = ((tenkan_sen + kijun_sen) / 2).shift(26)
+    
+    # Senkou Span B (Leading Span B): (52-period high + 52-period low)/2 (26 periods ahead)
+    high_52 = prices_df["high"].rolling(window=52).max()
+    low_52 = prices_df["low"].rolling(window=52).min()
+    senkou_span_b = ((high_52 + low_52) / 2).shift(26)
+    
+    
+    # Generate ichimoku signals
+    cloud_bullish = senkou_span_a > senkou_span_b
+    price_above_cloud = prices_df["close"] > senkou_span_a
+    tenkan_kijun_cross = tenkan_sen > kijun_sen
+    
+    # Combine signals
+    if cloud_bullish.iloc[-1] and price_above_cloud.iloc[-1] and tenkan_kijun_cross.iloc[-1]:
+        signal = "bullish"
+        confidence = 0.8
+    elif not cloud_bullish.iloc[-1] and not price_above_cloud.iloc[-1] and not tenkan_kijun_cross.iloc[-1]:
+        signal = "bearish"
+        confidence = 0.8
+    else:
+        signal = "neutral"
+        confidence = 0.5
+    
+    return {
+        "signal": signal,
+        "confidence": confidence,
+        "metrics": {
+            "cloud_direction": "bullish" if cloud_bullish.iloc[-1] else "bearish",
+            "price_to_cloud": "above" if price_above_cloud.iloc[-1] else "below",
+            "tk_cross": "bullish" if tenkan_kijun_cross.iloc[-1] else "bearish"
+        }
     }
 
 

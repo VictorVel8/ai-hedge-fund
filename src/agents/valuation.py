@@ -55,7 +55,7 @@ def valuation_agent(state: AgentState):
         margin_of_safety=0.25,
     )
 
-    print(current_financial_line_item)
+    #print(current_financial_line_item)
 
     # DCF Valuation
     dcf_value = calculate_intrinsic_value(

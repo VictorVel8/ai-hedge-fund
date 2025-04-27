@@ -11,7 +11,7 @@ from typing import Literal
 class PortfolioManagerOutput(BaseModel):
     action: Literal["buy", "sell", "hold"]
     confidence: float = Field(description="Confidence in the decision, between 0.0 and 100.0")
-    reasoning: str = Field(description="Reasoning for the decision")
+    reasoning: str = Field(description="Reasoning for the decision. Give a full paragraph of in-depth reasoning for the decision")
 
 
 ##### Portfolio Management Agent #####
@@ -67,7 +67,7 @@ def portfolio_management_agent(state: AgentState):
         }
     )
     # Create the LLM
-    llm = ChatOpenAI(model="o1").with_structured_output(
+    llm = ChatOpenAI(model="o3-mini", max_tokens=8192).with_structured_output(
         PortfolioManagerOutput,
         #method="function_calling",
     )
